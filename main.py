@@ -18,24 +18,46 @@ if sysplatform == 'linux' or sysplatform == 'win32':
     Config.write()
 
 
+class LoadPopup(ModalView):
+
+    def __init__(self, **kwargs):
+        super(LoadPopup, self).__init__(**kwargs)
+        self.size_hint = (.5, .3)
+        self.build()
+
+    def build(self):
+        self.load_grid = GridLayout(cols=1)
+        # button for loading test data
+        test_btn = Button(text="Load from test datasets")
+        self.load_grid.add_widget(test_btn)
+        test_btn.bind(on_press=self.load_test_data)
+
+        # button for loading own data
+        data_btn = Button(text="Load from storage")
+        self.load_grid.add_widget(data_btn)
+        data_btn.bind(on_press=self.load_from_storage)
+
+        # button for loading from URL
+        url_btn = Button(text="Load from URL")
+        self.load_grid.add_widget(url_btn)
+        url_btn.bind(on_press=self.load_from_url)
+
+        self.add_widget(self.load_grid)
+
+    def load_test_data(self, event):
+        print("Loading data from app storage")
+
+    def load_from_storage(self, event):
+        print("Loading data from phone storage")
+
+    def load_from_url(self, event):
+        print("Loading data from URL")
+
+
 class TestApp(App):
     def __init__(self, **kwargs):
         super(TestApp, self).__init__(**kwargs)
-        self.build_load_popup()
-
-    def build_load_popup(self):
-        self.load_popup = ModalView(
-            size_hint=(.5, .3)
-        )
-
-        self.grid = GridLayout()
-        # button for loading test data
-
-        # button for loading own data
-
-        # button for loading from URL
-
-
+        self.load_popup = LoadPopup()
 
     def build(self):
         fig, ax = plt.subplots(figsize=(8, 3.9))
