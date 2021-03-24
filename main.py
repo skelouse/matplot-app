@@ -12,6 +12,7 @@ from kivy.factory import Factory
 from kivy.uix.filechooser import FileChooserListView
 from kivy.properties import ListProperty, ObjectProperty
 from kivy.uix.dropdown import DropDown
+from kivy.uix.textinput import TextInput
 import matplotlib.pyplot as plt
 
 
@@ -79,28 +80,54 @@ class LoadPopup(ModalView):
             test_modal.add_widget(self.test_grid)
             self.modals[_type] = test_modal
 
-        elif _type == "storage":
+        elif _type == "storage" and not self.modals[_type]:
             if not self.modals[_type]:
                 fc = FileChooserWindow(
                     load_callback=self.load_data
                 )
                 self.modals[_type] = fc
 
-        elif _type == "url":
-            pass
-        
+        elif _type == "url" and not self.modals[_type]:
+            url_modal = ModalView()
+            layout = RelativeLayout()
+            self.url_inp = TextInput(
+                hint_text='URL',
+                size_hint=(.3, .1),
+                pos_hint={'center_x': .5, 'center_y': .5}
+            )
+
+            submit_btn = Button(
+                text="Submit",
+                size_hint=(.3, .1),
+                pos_hint={'center_x': .5, 'center_y': .35}
+            )
+
+            layout.add_widget(self.url_inp)
+            submit_btn.bind(on_press=self.load_data)
+            layout.add_widget(submit_btn)
+
+            url_modal.add_widget(layout)
+
+            self.modals[_type] = url_modal
+
         self._type = _type
         return self.modals[_type]
 
     def load_data(self, event):
-        # Deal with csv, txt, or xlsx differences here
         if self._type == "test":
-            df = pd.read_csv("./test-data/%s" % str(event.text))
+            df = self.real_load_data("./test-data/%s" % str(event.text))
         elif self._type == "storage":
-            df = pd.read_csv(event)
+            df = self.real_load_data(event)
+        elif self._type == "url":
+            df = self.real_load_data(self.url_inp.text)
+            self.url_inp.text = ""
         self.app.data = df
         self.modals[self._type].dismiss()
         self.dismiss()
+
+    def real_load_data(self, filename):
+        # Deal with csv, txt, or xlsx differences here
+        return pd.read_csv(filename)
 
     def build(self):
         self.load_grid = GridLayout(cols=1)
@@ -122,15 +149,13 @@ class LoadPopup(ModalView):
         self.add_widget(self.load_grid)
 
     def load_test_data(self, event):
-        print("Loading data from app storage")
         self.get_modal("test").open()
-
 
     def load_from_storage(self, event):
         self.get_modal("storage").open()
 
     def load_from_url(self, event):
-        print("Loading data from URL")
+        self.get_modal("url").open()
 
 
 class TestApp(App):
