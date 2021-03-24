@@ -9,6 +9,7 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.modalview import ModalView
 from kivy.factory import Factory
+from kivy.uix.filechooser import FileChooserListView
 from kivy.properties import ListProperty, ObjectProperty
 from kivy.uix.dropdown import DropDown
 import matplotlib.pyplot as plt
@@ -24,11 +25,39 @@ if sysplatform == 'linux' or sysplatform == 'win32':
     Config.write()
 
 
+class FileChooserWindow(ModalView):
+    def __init__(self, load_callback, **kwargs):
+        self.load_callback = load_callback
+        super(FileChooserWindow, self).__init__(**kwargs)
+        self.layout = RelativeLayout()
+
+        fc = FileChooserListView(
+            filters=["*.csv", "*.xlsx", "*.txt"],
+            size_hint=(.8, 1)
+        )
+        fc.bind(on_submit=self.file_chosen)
+        self.layout.add_widget(fc)
+
+        exit_btn = Button(
+            text='Exit',
+            size_hint=(.1, .1),
+            pos_hint={'center_x': .9, 'center_y': .9}
+            )
+        exit_btn.bind(on_press=self.dismiss)
+        self.layout.add_widget(exit_btn)
+
+        self.add_widget(self.layout)
+
+    def file_chosen(self, event, filename, *args):
+        self.load_callback(filename[0])
+
+
 class LoadPopup(ModalView):
 
     def __init__(self, **kwargs):
         super(LoadPopup, self).__init__(**kwargs)
         self.app = App.get_running_app()
+        self._type = ""
         self.size_hint = (.5, .3)
         self.build()
         self.modals = {
@@ -38,30 +67,39 @@ class LoadPopup(ModalView):
         }
 
     def get_modal(self, _type):
-        if _type == "test":
-            if self.modals[_type]:
-                return self.test_modal
-            else:
-                self.test_modal = ModalView()
-                self.test_grid = GridLayout(cols=1)
-                test_datasets = os.listdir("./test-data")
-                for _set in test_datasets:
-                    btn = Button(text=_set)
-                    btn.bind(on_press=self.load_data)
-                    self.test_grid.add_widget(btn)
-                self.test_modal.add_widget(self.test_grid)
+        # Create modals if not already created
+        if _type == "test" and not self.modals[_type]:
+            test_modal = ModalView()
+            self.test_grid = GridLayout(cols=1)
+            test_datasets = os.listdir("./test-data")
+            for _set in test_datasets:
+                btn = Button(text=_set)
+                btn.bind(on_press=self.load_data)
+                self.test_grid.add_widget(btn)
+            test_modal.add_widget(self.test_grid)
+            self.modals[_type] = test_modal
 
-                self.modals[_type] = 1
-                return self.test_modal
         elif _type == "storage":
-            pass
+            if not self.modals[_type]:
+                fc = FileChooserWindow(
+                    load_callback=self.load_data
+                )
+                self.modals[_type] = fc
+
         elif _type == "url":
             pass
+        
+        self._type = _type
+        return self.modals[_type]
 
     def load_data(self, event):
-        df = pd.read_csv("./test-data/%s" % str(event.text))
+        # Deal with csv, txt, or xlsx differences here
+        if self._type == "test":
+            df = pd.read_csv("./test-data/%s" % str(event.text))
+        elif self._type == "storage":
+            df = pd.read_csv(event)
         self.app.data = df
-        self.test_modal.dismiss()
+        self.modals[self._type].dismiss()
         self.dismiss()
 
     def build(self):
@@ -89,7 +127,7 @@ class LoadPopup(ModalView):
 
 
     def load_from_storage(self, event):
-        print("Loading data from phone storage")
+        self.get_modal("storage").open()
 
     def load_from_url(self, event):
         print("Loading data from URL")
@@ -200,11 +238,10 @@ class TestApp(App):
             size_hint_y=(.15),
             padding=[0, 0, 0, -1]
         )
-        
+
         # Button for share button
 
         # Button for color scheme
-
 
         layout.add_widget(self.bottom_grid)
 
