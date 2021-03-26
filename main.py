@@ -286,14 +286,18 @@ class TestApp(App):
         self.load_popup.open()
 
     def plot(self, event):
-        X = self.data[self.x_cols]
-        y = self.data[self.y_cols]
-        plt.plot(X, y)
-        plt.legend()
-        plt.savefig(self.filename)
-        plt.clf()  # cla for multiple subplots
-        self.img.source = self.filename
-        self.img.reload()
+        try:
+            X = self.data[self.x_cols]
+            y = self.data[self.y_cols]
+            plt.plot(X, y)
+            plt.legend()
+            plt.savefig(self.filename)
+            plt.clf()  # cla for multiple subplots
+            self.img.source = self.filename
+            self.img.reload()
+        except Exception:
+            # Open error popup here with descriptor
+            print("Bad plot")
 
 
 TestApp().run()
