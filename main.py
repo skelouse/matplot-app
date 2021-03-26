@@ -170,7 +170,11 @@ class TestApp(App):
         self.y_cols = []
 
     def load_data(self, event):
-        print(self.data.head())
+        try:
+            self.data.head()
+        except Exception:
+            return 0
+        print(self.data.head())  # Testing
         cols = self.data.columns
         self.x_cols = []
         if self.x_dropdown:
